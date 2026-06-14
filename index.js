@@ -4,21 +4,7 @@ function ghAvailable() {
   try { execSync("gh --version", { stdio: "pipe" }); return true; } catch { return false; }
 }
 
-function fetchEvents(user, days = 365) {
-  const since = new Date(Date.now() - days * 86400000).toISOString().split("T")[0];
-  try {
-    const raw = execSync(
-      `gh api "users/${user}/events?per_page=100" --paginate --jq '.[]' 2>/dev/null`,
-      { stdio: ["pipe", "pipe", "pipe"], timeout: 30000 }
-    ).toString().trim();
-    if (!raw) return [];
-    // gh api --paginate --jq with array may not work cleanly; fallback
-    return [];
-  } catch { return []; }
-}
-
 function fetchContributions(user) {
-  // Use events API to get recent contributions
   const events = [];
   try {
     const raw = execSync(
@@ -39,19 +25,18 @@ function aggregateByDay(events) {
   for (const e of events) {
     map[e.date] = (map[e.date] || 0) + 1;
   }
-  // Return sorted
   return Object.entries(map).sort(([a], [b]) => b.localeCompare(a)).map(([date, count]) => ({ date, count }));
 }
 
 function calcStreak(days) {
   let streak = 0;
   const today = new Date();
+  const byDate = new Map(days.map(d => [d.date, d]));
   for (let i = 0; i < 400; i++) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
     const ds = d.toISOString().split("T")[0];
-    const found = days.find(x => x.date === ds);
-    if (found) { streak++; }
+    if (byDate.has(ds)) { streak++; }
     else if (i === 0) { continue; } // today might not have contributions yet
     else { break; }
   }
@@ -85,36 +70,6 @@ function heatLevel(count) {
   return "█";
 }
 
-function buildHeatmap(days) {
-  const map = {};
-  for (const d of days) map[d.date] = d.count;
-  const lines = [];
-  const today = new Date();
-  // Show last 52 weeks (364 days) + current week
-  const start = new Date(today);
-  start.setDate(start.getDate() - 363);
-  // Adjust to Sunday
-  start.setDate(start.getDate() - start.getDay());
-
-  const months = {};
-  for (let w = 0; w < 53; w++) {
-    for (let dow = 0; dow < 7; dow++) {
-      const d = new Date(start);
-      d.setDate(d.getDate() + w * 7 + dow);
-      if (d > today) continue;
-      const ds = d.toISOString().split("T")[0];
-      const count = map[ds] || 0;
-      if (!lines[dow]) lines[dow] = "";
-      lines[dow] += heatLevel(count);
-      const m = d.toLocaleString("en", { month: "short" });
-      if (!months[w] || d.getDate() <= 7) months[w] = m;
-    }
-  }
-  // Month labels
-  const monthLine = Object.values(months).map(m => m.padEnd(1)).join("");
-  return [monthLine, ...lines];
-}
-
 function formatText(user, days, opts = {}) {
   const streak = calcStreak(days);
   const longest = calcLongestStreak(days);
@@ -131,11 +86,12 @@ function formatText(user, days, opts = {}) {
   if (days.length) {
     lines.push(`  Last 14 days:`);
     const today = new Date();
+    const byDate = new Map(days.map(d => [d.date, d]));
     for (let i = 13; i >= 0; i--) {
       const d = new Date(today);
       d.setDate(d.getDate() - i);
       const ds = d.toISOString().split("T")[0];
-      const found = days.find(x => x.date === ds);
+      const found = byDate.get(ds);
       const bar = found ? "█".repeat(Math.min(found.count, 20)) : "·";
       const label = found ? String(found.count).padStart(3) : "  0";
       lines.push(`  ${ds}  ${bar} ${label}`);

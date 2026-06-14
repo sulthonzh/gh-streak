@@ -1,15 +1,14 @@
 #!/usr/bin/env node
+const { execSync } = require("child_process");
 const { ghAvailable, fetchContributions, aggregateByDay, formatText, formatJSON, formatMarkdown, parseArgs, HELP } = require("./index");
 
 const opts = parseArgs(process.argv);
 if (opts.help) { console.log(HELP); process.exit(0); }
 if (!ghAvailable()) { console.error("Error: gh CLI not found. Install: https://cli.github.com"); process.exit(2); }
 
-// Resolve user
 let user = opts.user;
 if (!user) {
   try {
-    const { execSync } = require("child_process");
     user = execSync("gh api user --jq .login", { stdio: ["pipe", "pipe", "pipe"] }).toString().trim();
   } catch { console.error("Error: could not detect GitHub user. Use --user"); process.exit(2); }
 }
