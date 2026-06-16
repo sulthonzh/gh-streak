@@ -2,10 +2,25 @@
   "name": "gh-streak",
   "version": "1.0.0",
   "description": "Track your GitHub contribution streak and stats from the terminal",
-  "bin": { "gh-streak": "./cli.js" },
+  "bin": {
+    "gh-streak": "./cli.js"
+  },
   "main": "index.js",
-  "scripts": { "test": "node --test test/*.test.mjs" },
-  "keywords": ["github", "streak", "contributions", "cli"],
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "keywords": [
+    "github",
+    "streak",
+    "contributions",
+    "cli"
+  ],
   "license": "MIT",
-  "engines": { "node": ">=18" }
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "index.js",
+    "cli.js"
+  ]
 }
